@@ -1,0 +1,245 @@
+# ##################################################################
+# ##################################################################
+# ##################################################################
+# 
+# Created by The Skripter
+# 
+# ##################################################################
+# ##################################################################
+# ##################################################################
+
+on load:
+
+    send " " to console
+    send "&7&m      &7[ &cTags Skript &7]&m      " to console
+    send "&cAuthor: &fThe Skripter" to console
+    send "&cVersion: &f1.0" to console
+    send "&cContact: &f@theskripter (discord)" to console
+    send " " to console
+
+# ##################################################################
+# ##################################################################
+# ##################################################################
+# 
+# Tag Admin Function
+# 
+# ##################################################################
+# ##################################################################
+# ##################################################################
+
+function tags_admin_gui(p: player, page: integer):
+    set {_gui} to chest inventory with 6 rows named "&cTags Admin Menu &f[%{_page}%]"
+    set slot integers between 45 and 53 of {_gui} to iron bars named "&7" with all flags hidden
+    set slot 49 of {_gui} to barrier named "&c&lCLOSE" with all flags hidden
+    loop 45 times:
+        set {_num} to (({_page} * 45) + loop-value) - 45
+        if {tags::list::%{_num}%} is set:
+            set slot loop-value - 1 of {_gui} to name tag named {tags::list::%{_num}%} with lore " ", "&c&lLMB: &fEquip", "&c&lRMB: &fDelete" and " " with all flags hidden
+        else:
+            stop loop
+    if (size of {tags::list::*} / 45) >= {_page}:
+        set slot 53 of {_gui} to glowing arrow named "&c&lNEXT PAGE" with lore " ", "&fClick to go to &cPage %{_page} + 1%!" and " " with all flags hidden
+    if {_page} >= 2:
+        set slot 45 of {_gui} to glowing arrow named "&c&lPREVIOUS PAGE" with lore " ", "&fClick to go to &cPage %{_page} - 1%!" and " " with all flags hidden
+    set slot 50 of {_gui} to lime concrete named "&a&lNEW TAG" with lore " ", "&fClick to make a new tag!" and " " with all flags hidden
+    set slot 48 of {_gui} to red concrete named "&c&lCLEAR TAGS" with lore " ", "&fClick to clear all tags!" and " " with all flags hidden
+    open {_gui} to {_p}
+
+on inventory click:
+    if name of event-inventory contains "&cTags Admin Menu":
+        cancel event
+        if item in event-slot is nametag:
+            if click type is left mouse button:
+                set {tags::active::%player's uuid%} to name of event-slot
+                play sound "BLOCK_NOTE_BLOCK_BIT"
+                send action bar "&fSet your tag to: &c%name of event-slot%"
+            if click type is right mouse button:
+                remove all name of item in event-slot from {tags::list::*}
+                play sound "BLOCK_NOTE_BLOCK_GUITAR"
+                send action bar "&fDeleted tag: &c%name of event-slot%"
+                loop {tags::list::*}:
+                    add loop-value to {_tagslist::*}
+                set {tags::list::*} to {_tagslist::*}
+                set {_page} to name of event-inventory
+                replace all "&cTags Admin Menu &f[" and "]" in {_page} with ""
+                tags_admin_gui(player, {_page} parsed as integer)
+        if item in event-slot is arrow:
+            if index of event-slot is 53:
+                set {_page} to name of event-inventory
+                replace all "&cTags Admin Menu &f[" and "]" in {_page} with ""
+                tags_admin_gui(player, {_page} parsed as integer + 1)
+                play sound "BLOCK_NOTE_BLOCK_PLING"
+            if index of event-slot is 45:
+                set {_page} to name of event-inventory
+                replace all "&cTags Admin Menu &f[" and "]" in {_page} with ""
+                tags_admin_gui(player, {_page} parsed as integer - 1)
+                play sound "BLOCK_NOTE_BLOCK_PLING"
+        if item in event-slot is red concrete:
+            delete {tags::list::*}
+            delete {tags::active::*}
+            tags_admin_gui(player, 1)
+            play sound "ENTITY_ENDER_DRAGON_FLAP"
+            send action bar "&cDeleted all tags!"
+        if item in event-slot is lime concrete:
+            close player's inventory
+            send title "&a&lNEW TAG" with subtitle "&fPlease type the new tag in chat!"
+            send "&cTags: &fPlease type the new tag below:"
+            send "&cTags: &fTo cancel this operation, type &c'cancel'!"
+            play sound "ENTITY_ENDER_DRAGON_FLAP"
+            set {tags::awaitingresponse::%player's uuid%} to true
+        if index of event-slot is 49:
+            close player's inventory
+            play sound "BLOCK_NOTE_BLOCK_GUITAR"
+    if name of event-inventory contains "&cTags":
+        cancel event
+        if item in event-slot is name tag:
+            set {tags::active::%player's uuid%} to name of event-slot
+            play sound "BLOCK_NOTE_BLOCK_BIT"
+            send action bar "&fSet your tag to: &c%name of event-slot%"
+            set {_page} to name of event-inventory
+            replace all "&cTags &f[" and "]" in {_page} with ""
+            tags_gui(player, {_page} parsed as integer)
+        if index of event-slot is 49:
+            close player's inventory
+            play sound "BLOCK_NOTE_BLOCK_GUITAR"
+        if item in event-slot is arrow:
+            if index of event-slot is 53:
+                set {_page} to name of event-inventory
+                replace all "&cTags &f[" and "]" in {_page} with ""
+                tags_gui(player, {_page} parsed as integer + 1)
+                play sound "BLOCK_NOTE_BLOCK_PLING"
+            if index of event-slot is 49:
+                set {_page} to name of event-inventory
+                replace all "&cTags &f[" and "]" in {_page} with ""
+                tags_gui(player, {_page} parsed as integer - 1)
+                play sound "BLOCK_NOTE_BLOCK_PLING"
+        if index of event-slot is 50:
+            delete {tags::active::%player's uuid%}
+            send action bar "&fCleared your tag!"
+            play sound "BLOCK_NOTE_BLOCK_GUITAR"
+            set {_page} to name of event-inventory
+            replace all "&cTags &f[" and "]" in {_page} with ""
+            tags_gui(player, {_page} parsed as integer)
+
+on chat:
+    if {tags::awaitingresponse::%player's uuid%} is true:
+        cancel event
+        delete {tags::awaitingresponse::%player's uuid%}
+        if message is not "cancel":
+            add colored message to {tags::list::*}
+            play sound "BLOCK_NOTE_BLOCK_FLUTE"
+            send "&cTags: &fSuccessfully created new tag: &c%colored message%"
+            tags_admin_gui(player, 1)
+        else:
+            tags_admin_gui(player, 1)
+            play sound "BLOCK_NOTE_BLOCK_GUITAR"
+            send "&cTags: &fSuccessfully cancelled operation."
+
+function tags_gui(p: player, page: integer):
+    set {_gui} to chest inventory with 6 rows named "&cTags &f[1]"
+    set slot integers between 45 and 53 of {_gui} to iron bars named "&7" with all flags hidden
+    set slot 49 of {_gui} to barrier named "&c&lCLOSE" with all flags hidden
+    set slot 50 of {_gui} to red concrete named "&c&lCLEAR TAG" with lore " ", "&cCurrent Tag: &f%{tags::active::%{_p}'s uuid%} ? "None"%", " ", "&fClick to clear your tag!" and " " with all flags hidden
+    set {_tags::*} to {tags::list::*}
+    if size of {tags::unlocked::%{_p}'s uuid%::*} >= 45 * {_page}:
+        set {_looptimes} to 45
+    else:
+        set {_looptimes} to (size of {tags::unlocked::%{_p}'s uuid%::*}) - (45 * ({_page} - 1))
+    loop {_looptimes} times:
+        remove all {tags::unlocked::%{_p}'s uuid%::%loop-value%} from {_tags::*}
+        set slot loop-value - 1 of {_gui} to glowing name tag named "%{tags::unlocked::%{_p}'s uuid%::%loop-value + (({_page} -1 ) * 45)%}%" with lore " ", "&fUnlocked: &a&l✔", " ", "&fClick to equip!" and " " with all flags hidden
+    if ((size of {tags::unlocked::%{_p}'s uuid%::*} + size of {_tags::*}) / 45) >= {_page}:
+        set slot 53 of {_gui} to glowing arrow named "&c&lNEXT PAGE" with lore " ", "&fClick to go to &cPage %{_page} + 1%!" and " " with all flags hidden
+    if {_page} >= 2:
+        set slot 45 of {_gui} to glowing arrow named "&c&lPREVIOUS PAGE" with lore " ", "&fClick to go to &cPage %{_page} - 1%!" and " " with all flags hidden
+    open {_gui} to {_p}
+
+# ##################################################################
+# ##################################################################
+# ##################################################################
+# 
+# Tag Admin Commands
+# 
+# ##################################################################
+# ##################################################################
+# ##################################################################
+
+command /tags-give [<offline player>] [<text>]:
+    permission: tags.give, tags.*
+    permission message: &cNo permission!
+    usage: &cTags: &fPlease use &c/tags-give [player] [tag]!
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                if {tags::list::*} contains colored arg-2:
+                    if {tags::unlocked::%arg-1's uuid%::*} does not contain colored arg-2:
+                        add colored arg-2 to {tags::unlocked::%arg-1's uuid%::*}
+                        send "&cTags: &fGiven the tag &c%arg-2% &fto &c%arg-1%!"
+                        play sound "BLOCK_NOTE_BLOCK_PLING"
+                    else:
+                        send "&cTags: &fThat player already has that tag!"
+                        play sound "BLOCK_NOTE_BLOCK_BASS"
+                else:
+                    send "&cTags: &fThat is not a valid tag!"
+                    play sound "BLOCK_NOTE_BLOCK_BASS"
+            else:
+                send "&cTags: &fPlease specify a tag!"
+                play sound "BLOCK_NOTE_BLOCK_BASS"
+        else:
+            send "&cTags: &fPlease specify a player!"
+            play sound "BLOCK_NOTE_BLOCK_BASS"
+
+command /tags-remove [<offline player>] [<text>]:
+    permission: tags.remove, tags.*
+    permission message: &cNo permission!
+    usage: &cTags: &fPlease use &c/tags-remove [player] [tag]!
+    trigger:
+        if arg-1 is set:
+            if arg-2 is set:
+                if {tags::list::*} contains colored arg-2:
+                    if {tags::unlocked::%arg-1's uuid%::*} contains colored arg-2:
+                        remove colored arg-2 from {tags::unlocked::%arg-1's uuid%::*}
+                        send "&cTags: &fRemoved the tag &c%arg-2% &ffrom &c%arg-1%!"
+                        play sound "BLOCK_NOTE_BLOCK_PLING"
+                    else:
+                        send "&cTags: &fThat player does not have that tag!"
+                        play sound "BLOCK_NOTE_BLOCK_BASS"
+                else:
+                    send "&cTags: &fThat is not a valid tag!"
+                    play sound "BLOCK_NOTE_BLOCK_BASS"
+            else:
+                send "&cTags: &fPlease specify a tag!"
+                play sound "BLOCK_NOTE_BLOCK_BASS"
+        else:
+            send "&cTags: &fPlease specify a player!"
+            play sound "BLOCK_NOTE_BLOCK_BASS"
+
+command /tags-admin:
+    permission: tags.*
+    permission message: &cNo permission!
+    usage: &cTags: &fPlease use &c/tags-admin!
+    trigger:
+        tags_admin_gui(player, 1)
+        play sound "BLOCK_NOTE_BLOCK_PLING"
+
+command /tags:
+    usage: &cTags: &fPlease use &c/tags!
+    trigger:
+        tags_gui(player, 1)
+        play sound "BLOCK_NOTE_BLOCK_PLING"
+
+# ##################################################################
+# ##################################################################
+# ##################################################################
+# 
+# Tag Placeholder
+# 
+# ##################################################################
+# ##################################################################
+# ##################################################################
+
+on placeholderapi placeholder request for the prefix "tag":
+    if {tags::active::%player's uuid%} is not set:
+        set result to ""
+    else:
+        set result to {tags::active::%player's uuid%}
